@@ -53,7 +53,7 @@ int list_is_empty(struct list const* List)
 	return List->head == NULL;
 }
 
-// Inserts a new value to the front of the list. Returns a pointer to the new node.
+// Inserts the given value to the front of the list. Returns a pointer to the new node.
 struct list_node* list_push_front(struct list* List, int Value)
 {
 	// Allocate enough heap memory for the new list node.
@@ -73,8 +73,38 @@ struct list_node* list_push_front(struct list* List, int Value)
 	// The new head needs to point forward to the old head.
 	newNode->next = oldHead;
 
-	// Initialise the previous node pointer for the new node to NULL.
+	// Initialise the previous-node-pointer for the new node to NULL.
 	newNode->prev = NULL;
+
+	// Initialise the node value.
+	newNode->value = Value;
+
+	// Return the new node pointer.
+	return newNode;
+}
+
+// Adds the given value to the end of the list. Returns a pointer to the new node.
+struct list_node* list_push_back(struct list* List, int Value)
+{
+	// Allocate enough heap memory for the new list node.
+	struct list_node* newNode = malloc(sizeof(struct list_node));
+	if (!newNode) return NULL;
+
+	// Replace the list tail with the new node.
+	struct list_node* oldTail = List->tail;
+	List->tail = newNode;
+
+	// Update the head node if needed.
+	if (!List->head) List->head = newNode;
+
+	// The old tail needs to point forward to the new tail.
+	if (oldTail) oldTail->next = newNode;
+
+	// The new head needs to point back to the old tail.
+	newNode->prev = oldTail;
+
+	// Initialise the next-node-pointer for the new node to NULL.
+	newNode->next = NULL;
 
 	// Initialise the node value.
 	newNode->value = Value;
@@ -126,6 +156,77 @@ void clear_list(struct list* List)
 	List->tail = NULL;
 }
 
+// Inserts the given value in the list before the node specified by Where.
+// If Where is NULL, the value is appended to the list.
+struct list_node* insert_list_item(struct list* List, struct list_node* Where, int Value)
+{
+	// If Where is NULL, append the new value.
+	if (!Where) return list_push_back(List, Value);
+	
+	// Allocate enough heap memory for the new list node.
+	struct list_node* newNode = malloc(sizeof(struct list_node));
+	if (!newNode) return NULL;
+
+	// Initialise the new node (except newNode->prev, which will be set later).
+	newNode->value = Value;
+	newNode->next = Where;
+
+	// Set the node specified by Where to point back to the new node.
+	struct list_node* prev = Where->prev;
+	Where->prev = newNode;
+
+	// Set the previous-node-pointer for the new node.
+	newNode->prev = prev;
+
+	if (prev)
+	{
+		// Set the previous node to point forward to the new node.
+		prev->next = newNode;
+	}
+	else
+	{
+		// If the previous node does not exist, Where must be the head.
+		// Therefore, the head pointer needs to be set to the new node.
+		List->head = newNode;
+	}
+
+	return newNode;
+}
+
+// Erases the node specified by Where.
+void erase_list_item(struct list* List, struct list_node* Where)
+{
+	assert(Where != NULL);
+
+	// Get the previous and next node pointers for Where.
+	struct list_node* prev = Where->prev;
+	struct list_node* next = Where->next;
+
+	if (prev)
+	{
+		// Set the previous node to point forward to the next node.
+		prev->next = next;
+	}
+	else
+	{
+		// If the previous node does not exist, Where must be the head.
+		// Therefore we need to NULL the head pointer.
+		List->head = NULL;
+	}
+
+	if (next)
+	{
+		// Set the next node to point back to the previous node.
+		next->prev = prev;
+	}
+	else
+	{
+		// If the next node does not exist, Where must be the tail.
+		// Therefore we need to NULL the tail pointer.
+		List->tail = NULL;
+	}
+}
+
 // Sample using the doubly linked list.
 STATUS test_list()
 {
@@ -153,6 +254,66 @@ STATUS test_list()
 	}
 
 	return STATUS_OK;
+}
+
+// Test more operations on the doubly linked list.
+STATUS test_lists_advanced()
+{
+	printf("\nTesting list (advanced).\n");
+
+	STATUS status = STATUS_OK;
+
+	// Create a list.
+	struct list list = list_create();
+
+	for (int i = 0; i < 5; ++i)
+	{
+		int value = rand();
+		if (!list_push_back(&list, value))
+		{
+			goto labelCleanup;
+		}
+		printf("Appended value %d to the list.\n", value);
+	}
+
+	struct list_node* p = list.head;
+	for (int i = 0; i < 3; ++i)
+	{
+		// Move p to the next element in the list.
+		p = p->next;
+	}
+
+	printf("Removing element %d from the list.\n", p->value);
+
+	erase_list_item(&list, p);
+
+	printf("The list now looks like this:\n");
+	int i;
+	for (i = 0, p = list.head; p; p = p->next, ++i)
+	{
+		printf("Element %d is %d.\n", i, p->value);
+	}
+
+	p = list.tail->prev;
+
+	int value = rand();
+	printf("Inserting value %d before value %d.\n", value, p->value);
+
+	if (!(p = insert_list_item(&list, p, value)))
+	{
+		status = STATUS_FAIL;
+		goto labelCleanup;
+	}
+	
+	printf("The list now looks like this:\n");
+	for (i = 0, p = list.head; p; p = p->next, ++i)
+	{
+		printf("Element %d is %d.\n", i, p->value);
+	}
+
+labelCleanup:
+	clear_list(&list);
+	return status;
 }
 
 // Sample using an array allocated to the heap:
@@ -554,6 +715,7 @@ int main()
 {
 	// Run all tests.
 	if (test_list() != STATUS_OK) return 1;
+	if (test_lists_advanced() != STATUS_OK) return 1;
 	if (test_dynamic_array() != STATUS_OK) return 1;
 	test_sorting_and_searching_array();
 	if (test_queue() != STATUS_OK) return 1;
