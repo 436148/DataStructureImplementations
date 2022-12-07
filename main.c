@@ -9,6 +9,7 @@ typedef enum STATUS
 {
 	STATUS_OK,
 	STATUS_FAIL,
+	STATUS_ARRAY_BASED_STACK_TOO_SMALL,
 } STATUS;
 
 // List implementation:
@@ -711,6 +712,109 @@ labelCleanup:
 	return status;
 }
 
+// Implementation of stack data structure using array.
+struct array_based_stack
+{
+	int* data; // Pointer to array of ints.
+	size_t capacity; // Capacity of array pointed to by data.
+	size_t size; // Size of the stack.
+};
+
+// Creates an empty stack with the given max capacity.
+STATUS create_array_based_stack(struct array_based_stack* Result, size_t Capacity)
+{
+	assert(Capacity != 0); // Capacity must not be zero.
+	size_t numBytes = sizeof(int) * Capacity;
+	if (sizeof(int) != numBytes / Capacity) // Check for overflow.
+	{
+		return STATUS_FAIL;
+	}
+	Result->data = malloc(numBytes);
+	if (!Result->data) // Check for allocation failure.
+	{
+		return STATUS_FAIL;
+	}
+	Result->capacity = Capacity;
+	Result->size = 0;
+	return STATUS_OK;
+}
+
+// Free resources associated with the pointed-to stack.
+void free_array_based_stack(struct array_based_stack* Stack)
+{
+	free(Stack->data);
+}
+
+// Returns a non-zero value (1) if and only if the given stack is empty.
+int array_based_stack_is_empty(struct array_based_stack const* Stack)
+{
+	return Stack->size == 0;
+}
+
+// Empties the given stack. Note that this does not free memory resources.
+void clear_array_based_stack(struct array_based_stack* Stack)
+{
+	Stack->size = 0;
+}
+
+// Adds a value to the top of the stack.
+STATUS push_array_based(struct array_based_stack* Stack, int Value)
+{
+	// Ensure there is enough room for new element.
+	if (Stack->size == Stack->capacity)
+	{
+		return STATUS_ARRAY_BASED_STACK_TOO_SMALL;
+	}
+
+	// Append value to the end of the array.
+	Stack->data[Stack->size++] = Value;
+
+	return STATUS_OK;
+}
+
+// Removes and returns a value from the top of the stack.
+int pop_array_based(struct array_based_stack* Stack)
+{
+	// It is invalid to call pop_array_based if Stack is empty.
+	assert(!array_based_stack_is_empty(Stack));
+	// Remove and return value from the end of the array.
+	return Stack->data[--Stack->size];
+}
+
+STATUS test_array_based_stack()
+{
+	printf("\nTesting array based stack.\n");
+
+	// Create the stack.
+	struct array_based_stack stack;
+	STATUS status;
+	if ((status = create_array_based_stack(&stack, 5)) != STATUS_OK)
+	{
+		return status;
+	}
+
+	// Push 5 random values to the stack.
+	for (int i = 0; i < 5; ++i)
+	{
+		int value = rand();
+		if ((status = push_array_based(&stack, value)) != STATUS_OK)
+		{
+			goto labelCleanup;
+		}
+		printf("Pushed %d.\n", value);
+	}
+	
+	// Pop 5 values from the stack.
+	for (int i = 0; i < 5; ++i)
+	{
+		printf("Popped %d.\n", pop_array_based(&stack));
+	}
+
+labelCleanup:
+	free_array_based_stack(&stack);
+	return status;
+}
+
 int main()
 {
 	// Run all tests.
@@ -720,5 +824,6 @@ int main()
 	test_sorting_and_searching_array();
 	if (test_queue() != STATUS_OK) return 1;
 	if (test_stack() != STATUS_OK) return 1;
+	if (test_array_based_stack() != STATUS_OK) return 1;
 	return 0;
 }
