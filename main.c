@@ -47,7 +47,7 @@ struct list list_create()
 }
 
 // Returns 1 if the list is empty, 0 otherwise.
-int list_is_empty(struct list* List)
+int list_is_empty(struct list const* List)
 {
 	// If the head node pointer is NULL, the list is empty.
 	return List->head == NULL;
@@ -305,7 +305,7 @@ struct queue create_queue()
 }
 
 // Returns 1 if the queue is empty, 0 otherwise.
-int queue_is_empty(struct queue* Queue)
+int queue_is_empty(struct queue const* Queue)
 {
 	// If the head node pointer is NULL, the queue is empty.
 	return Queue->head == NULL;
@@ -357,7 +357,7 @@ int dequeue(struct queue* Queue)
 }
 
 // Returns the value at the front of the queue.
-int peek_queue(struct queue* Queue)
+int peek_queue(struct queue const* Queue)
 {
 	// It is invalid to call peek_queue if the queue is empty.
 	assert(!queue_is_empty(Queue));
@@ -450,7 +450,7 @@ struct stack create_stack()
 }
 
 // Returns 1 if the stack is empty, 0 otherwise.
-int stack_is_empty(struct stack* Stack)
+int stack_is_empty(struct stack const* Stack)
 {
 	// If the head node pointer is NULL, the stack is empty.
 	return Stack->head == NULL;
@@ -498,7 +498,7 @@ int pop(struct stack* Stack)
 }
 
 // Returns the value at the top of the stack.
-int peek_stack(struct stack* Stack)
+int peek_stack(struct stack const* Stack)
 {
 	// It is invalid to call peek_stack if the stack is empty.
 	assert(!stack_is_empty(Stack));
